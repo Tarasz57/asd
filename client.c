@@ -26,44 +26,49 @@ void createSocket(SOCKET *s){
 	printf("Socket created.\n");
 }
 
+void setUp(struct sockaddr_in *server){
+	server->sin_addr.s_addr = inet_addr("127.0.0.1");
+    server->sin_family = AF_INET;
+    server->sin_port = htons(8888);
+}
 
-int main(int argc , char *argv[])
-{
-	SOCKET s;
-	struct sockaddr_in server;
-    char *server_reply, *line;
-	int recv_size;
+void connectSocket(struct sockaddr_in server, SOCKET *s){
+    if(connect(*s,(struct sockaddr *)&server,sizeof(server))<0){
+        puts("connect error");
+    }
+    puts("Connected");
+}
+
+void cleanup(SOCKET *s, char *line, char *server_reply){
+	send(*s, line, strlen(line),0);
+	recv(*s,server_reply,100,0);
+	puts(server_reply);
+	closesocket(*s);
+	WSACleanup();
+	free(line);
+	free(server_reply);
+}
+
+int beginTheGame(SOCKET *s){
+	char *server_reply, *line;
     line = (char*)calloc(100,sizeof(char));
     server_reply = (char*)calloc(100,sizeof(char));
-	//a = (int*)calloc(n, sizeof(int));
-
-	initialiseSocket();
-	createSocket(&s);
+	int recv_size;
 	
-
-	server.sin_addr.s_addr = inet_addr("127.0.0.1");
-    server.sin_family = AF_INET;
-    server.sin_port = htons(8888);
-
     puts("\nWhat should we send?");
     scanf("%s",line);
 
-    if(connect(s,(struct sockaddr *)&server,sizeof(server))<0){
-        puts("connect error");
-        return 1;
-    }
-    puts("Connected");
-	
 	while(strcmp(line,"end") != 0){
 		//Send some data
-		if( send(s , line , strlen(line) , 0) < 0)
+		if( send(*s , line , strlen(line) , 0) < 0)
 		{
 			puts("Send failed");
+			printf("%d",WSAGetLastError());
 			return 1;
 		}
 		puts("Data Sent\n");
 		// //Receive a reply from the server
-		if((recv_size = recv(s , server_reply , 100 , 0)) == SOCKET_ERROR)
+		if((recv_size = recv(*s , server_reply , 100 , 0)) == SOCKET_ERROR)
 		{
 			puts("recv failed");
 		}
@@ -76,18 +81,27 @@ int main(int argc , char *argv[])
 		puts("\nWhat should we send?");
 		scanf("%s",line);
 	}
+	cleanup(s,line,server_reply);
+	return 1;
+}
 
-	send(s, line, strlen(line),0);
-	recv(s,server_reply,100,0);
-	puts(server_reply);
+
+int main(int argc , char *argv[])
+{
+	SOCKET s;
+	struct sockaddr_in server;
+    
+	//a = (int*)calloc(n, sizeof(int));
+
+	initialiseSocket();
+	createSocket(&s);
+	setUp(&server);
+	connectSocket(server,&s);
 	
-	// //Add a NULL terminating character to make it a proper string before printing
-	// server_reply[recv_size] = '\0';
-	// puts(server_reply);
-    closesocket(s);
-	WSACleanup();
-	free(line);
-	free(server_reply);
+	// setUp(&server);
+	// connectSocket(&server,&s);
 
-	return 0;
+	if(beginTheGame(&s) == 1){
+		return 0;
+	}
 }
