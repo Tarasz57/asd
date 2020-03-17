@@ -5,6 +5,7 @@
 #include<stdio.h>
 #include<winsock2.h>
 #include<string.h>
+#include<time.h>
 
 int main(int argc , char *argv[])
 {
@@ -64,7 +65,13 @@ int main(int argc , char *argv[])
 		return 1;
 	}
 
-	puts("Connection accepted");
+	puts("Connection accepted\n");
+
+	srand ( time(NULL) );
+	int num = rand() % 150 + 1;
+	char *bufferedInt = (char*)calloc(4,sizeof(char));
+	sprintf(bufferedInt, "%d", num);
+	printf("%s\n",bufferedInt);
 
 	while((recv_size = recv(incoming_socket , socket_message , 100 , 0)) != SOCKET_ERROR){
 		if(recv_size == SOCKET_ERROR)
@@ -81,10 +88,21 @@ int main(int argc , char *argv[])
 			free(socket_message);
 			return 0;
 		}
+		if(strcmp(socket_message,bufferedInt) == 0){
+			message = "Correct";
+			send(incoming_socket , message, strlen(message) , 0);
+		} else if (strcmp(socket_message,bufferedInt) < 0){
+			message = "Higher";
+			send(incoming_socket , message, strlen(message) , 0);
+		} else {
+			message = "Lower";
+			send(incoming_socket , message, strlen(message) , 0);
+		}
 		puts(socket_message);
+		// if(strcmp())
 		free(socket_message);
+		free(message);
 		socket_message = (char*)calloc(100,sizeof(char));
-
-		send(incoming_socket , message , strlen(message) , 0);
+		message = (char*)calloc(13,sizeof(char));
 	}
 }
